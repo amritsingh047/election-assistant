@@ -1,10 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends
+from typing import Dict, Any
 from pydantic import BaseModel, Field
 import os
 from google.genai import types
 from services.gemini_service import gemini_service
+from services.ocr_service import ocr_service
+from services.fact_check_service import fact_check_service
 from backend.routes.auth import verify_token
 from services.logger import setup_cloud_logger
+from fastapi import File, UploadFile
 
 router = APIRouter()
 logger = setup_cloud_logger(__name__)
@@ -72,7 +76,7 @@ async def chat_with_assistant(req: ChatRequest, current_user: str = Depends(veri
         ]
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=req.message,
             config=types.GenerateContentConfig(
                 system_instruction=dynamic_system_instruction,
@@ -85,3 +89,50 @@ async def chat_with_assistant(req: ChatRequest, current_user: str = Depends(veri
     except Exception as e:
         logger.error(f"Error during Gemini generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post(
+    "/upload-id",
+    summary="Upload Voter ID for Verification",
+    description="Processes an image of a Voter ID using Gemini Vision to extract registration details."
+)
+async def upload_voter_id(
+    file: UploadFile = File(...),
+    current_user: str = Depends(verify_token)
+):
+    """
+    Endpoint to demonstrate Multimodal AI capabilities by verifying an ID document.
+    """
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image uploads are supported.")
+    
+    logger.info(f"User {current_user} uploading ID for analysis.")
+    contents = await file.read()
+    result = await ocr_service.analyze_voter_id(contents)
+    
+    return {
+        "status": "success",
+        "analysis": result,
+        "message": "ID analyzed successfully. Your registration details have been pre-filled."
+    }
+
+@router.post(
+    "/fact-check",
+    summary="AI Election Fact-Checker",
+    description="Analyzes a claim or news headline for accuracy using Gemini AI."
+)
+async def fact_check(
+    req: Dict[str, str], 
+    current_user: str = Depends(verify_token)
+):
+    """
+    Combats election misinformation by providing AI-powered fact-checking.
+    """
+    claim = req.get("claim", "")
+    if not claim:
+        raise HTTPException(status_code=400, detail="Claim text is required.")
+    
+    result = await fact_check_service.verify_claim(claim)
+    return {
+        "status": "success",
+        "result": result
+    }

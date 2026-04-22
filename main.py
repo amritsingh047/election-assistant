@@ -1,3 +1,15 @@
+import logging
+import sys
+import os
+from dotenv import load_dotenv
+
+# Configure basic logging immediately to catch startup errors in Cloud Run logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    stream=sys.stdout
+)
+
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -7,11 +19,10 @@ from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from dotenv import load_dotenv
-import os
 from typing import Dict, Any
 
-from backend.routes import assistant, analytics, auth
+# Robust imports from package structure
+from backend.routes import assistant_router, analytics_router, auth_router
 from services.logger import setup_cloud_logger
 
 # Initialize Structured Cloud Logger
@@ -39,9 +50,9 @@ async def startup_event():
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(assistant.router, prefix="/api/assistant", tags=["Assistant"])
-app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(assistant_router, prefix="/api/assistant", tags=["Assistant"])
+app.include_router(analytics_router, prefix="/api", tags=["Analytics"])
 
 # Security Middleware (CORS)
 app.add_middleware(

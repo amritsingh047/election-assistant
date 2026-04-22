@@ -10,8 +10,12 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 8080 available to the world outside this container
+# Expose the default Cloud Run port
 EXPOSE 8080
 
-# Run uvicorn when the container launches
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use the PORT environment variable provided by Cloud Run
+ENV PORT 8080
+
+# Run uvicorn via python module for better stability and signal handling
+# We use shell form to allow environment variable expansion for $PORT
+CMD python -m uvicorn main:app --host 0.0.0.0 --port $PORT

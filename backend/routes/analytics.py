@@ -18,6 +18,12 @@ MOCK_DATA: Dict[str, Dict[str, Union[List[str], List[int]]]] = {
     "queries_by_topic": {
         "labels": ['Registration', 'Deadlines', 'Polling Stations', 'Candidates'],
         "data": [40, 25, 20, 15]
+    },
+    "sentiment_pulse": {
+        "labels": ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        "optimistic": [10, 15, 20, 25, 30, 28, 35],
+        "concerned": [5, 4, 3, 6, 8, 5, 2],
+        "neutral": [15, 12, 10, 8, 5, 10, 12]
     }
 }
 
@@ -41,17 +47,30 @@ async def get_dashboard_data(state: str = "all", district: str = "all", current_
         Dict[str, Any]: Dashboard data including turnout, query breakdown, and an AI insight.
     """
     
-    # Generate AI Insight based on the data
+    # Generate Advanced AI Insight based on the multi-dimensional data
     insight_text: str = "AI Insights not available (API Key missing)."
     if insight_client:
         try:
-            prompt: str = f"Given voter turnout data for state {state}: {MOCK_DATA['turnout_by_year']['data']} over years 2016-2024, generate a one sentence AI prediction or insight for engagement."
+            # Create a more analytical prompt for Gemini
+            prompt: str = f"""
+            As an Election Data Scientist, analyze the following mock data for {state}:
+            1. Voter Turnout (2016-2024): {MOCK_DATA['turnout_by_year']['data']}
+            2. Top Query Topics: {MOCK_DATA['queries_by_topic']['labels']} with weights {MOCK_DATA['queries_by_topic']['data']}
+            
+            Provide a one-sentence high-impact insight that connects the turnout trend with user interests. 
+            Be analytical, encouraging, and strictly non-partisan.
+            """
+            
             response = insight_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
+                model="gemini-1.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.4,
+                    top_p=0.9
+                )
             )
-            insight_text = response.text
-        except Exception:
+            insight_text = response.text.strip()
+        except Exception as e:
             insight_text = "AI Insight could not be generated at this time."
 
     return {
@@ -60,6 +79,7 @@ async def get_dashboard_data(state: str = "all", district: str = "all", current_
         "district": district,
         "turnout_data": MOCK_DATA["turnout_by_year"],
         "queries_data": MOCK_DATA["queries_by_topic"],
+        "sentiment_data": MOCK_DATA["sentiment_pulse"],
         "ai_insight": insight_text
     }
 

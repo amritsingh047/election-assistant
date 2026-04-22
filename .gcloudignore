@@ -1,0 +1,25 @@
+# Exclude git and environment files
+.git
+.gitignore
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Exclude local caches and IDE settings
+.vscode/
+.idea/
+.pytest_cache/
+.gemini/
+
+# Exclude the AppData folder that caused the crash
+AppData/
+**/AppData/**
+
+# Exclude scratch files
+scratch/
+
+# Standard Cloud Run exclusions
+node_modules/
+npm-debug.log

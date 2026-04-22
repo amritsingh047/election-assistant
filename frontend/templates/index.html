@@ -3,162 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Election Assistant & Dashboard</title>
+    <title>Smart Election Assistant | Enterprise AI</title>
     <!-- Modern Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
-    <!-- Chart.js for Dashboard -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4eacfe">
+    <!-- Charts and Utilities -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="/static/js/translations.js"></script>
 </head>
 <body>
     <header role="banner">
         <nav aria-label="Main Navigation">
             <div class="logo">
-                <h1>Smart Election Assistant</h1>
+                <h1><span style="font-size: 1.2rem; margin-right: 0.5rem;">🗳️</span><span data-i18n="title">Smart Election Assistant</span></h1>
             </div>
             <ul>
-                <li><a href="#assistant" aria-current="page">Assistant</a></li>
-                <li><a href="#dashboard">Analytics Dashboard</a></li>
-                <li><a href="#quiz">Voter Quiz</a></li>
-                <li><a href="#testing">System Health</a></li>
+                <li><a href="#assistant" aria-current="page" data-i18n="nav-assistant">Assistant</a></li>
+                <li><a href="#dashboard" data-i18n="nav-dashboard">Analytics</a></li>
+                <li><a href="#quiz" data-i18n="nav-quiz">Readiness Quiz</a></li>
                 <li>
-                    <select id="language-select" aria-label="Select Language" style="background:transparent; color:inherit; border:1px solid var(--border-color); border-radius:4px; padding:0.2rem; cursor:pointer;">
-                        <option value="en" style="color:black;">🇺🇸 EN</option>
-                        <option value="es" style="color:black;">🇪🇸 ES</option>
-                        <option value="fr" style="color:black;">🇫🇷 FR</option>
-                        <option value="hi" style="color:black;">🇮🇳 HI</option>
+                    <select id="language-select" aria-label="Select Language">
+                        <option value="en">🇺🇸 EN</option>
+                        <option value="es">🇪🇸 ES</option>
+                        <option value="fr">🇫🇷 FR</option>
+                        <option value="hi">🇮🇳 HI</option>
+                        <option value="pt-BR">🇧🇷 PT-BR</option>
+                        <option value="de">🇩🇪 DE</option>
+                        <option value="ja">🇯🇵 JA</option>
+                        <option value="zh">🇨🇳 ZH</option>
+                        <option value="ar">🇸🇦 AR</option>
                     </select>
                 </li>
-                <li><button id="theme-toggle" class="theme-toggle" aria-label="Toggle Light/Dark Mode">☀️</button></li>
-                <li><button id="logout-btn" style="display:none; background:var(--error-color); padding:0.4rem 0.8rem; font-size:0.9rem;" aria-label="Logout">Logout</button></li>
+                <li><button id="theme-toggle" class="theme-toggle" aria-label="Toggle Mode" style="background:none; padding:0; width:auto;">☀️</button></li>
+                <li><button id="logout-btn" style="display:none; background:var(--error-color); padding:0.5rem 1rem; font-size:0.85rem;" data-i18n="logout">Logout</button></li>
             </ul>
         </nav>
     </header>
 
     <main role="main">
-        <section id="assistant" class="panel" aria-labelledby="assistant-title">
-            <h2 id="assistant-title">Interactive AI Assistant</h2>
-            <div class="chat-container">
-                <div class="messages" id="chat-messages" aria-live="polite">
-                    <div class="message system">Hello! I am your Smart Election Assistant. How can I help you today?</div>
+        <!-- Voter Readiness Roadmap -->
+        <section id="roadmap" class="panel" style="padding: 1.5rem 2rem;">
+            <div class="roadmap-container">
+                <div class="roadmap-step active" id="step-auth">
+                    <div class="step-icon">🔑</div>
+                    <span class="step-label" data-i18n="step-auth">Authenticated</span>
                 </div>
-                <div class="input-area">
-                    <input type="text" id="chat-input" placeholder="Ask about registration, timelines, etc..." aria-label="Chat input">
-                    <button id="send-btn" aria-label="Send message">Send</button>
-                    <!-- Voice input button placeholder -->
-                    <button id="voice-btn" aria-label="Use voice input">🎤</button>
+                <div class="roadmap-step" id="step-consult">
+                    <div class="step-icon">💬</div>
+                    <span class="step-label" data-i18n="step-consult">AI Consult</span>
+                </div>
+                <div class="roadmap-step" id="step-state">
+                    <div class="step-icon">🗺️</div>
+                    <span class="step-label" data-i18n="step-state">State Choice</span>
+                </div>
+                <div class="roadmap-step" id="step-quiz">
+                    <div class="step-icon">📝</div>
+                    <span class="step-label" data-i18n="step-quiz">Quiz Ready</span>
+                </div>
+                <div class="roadmap-step" id="step-certified">
+                    <div class="step-icon">🏆</div>
+                    <span class="step-label" data-i18n="step-cert">Certified</span>
                 </div>
             </div>
         </section>
 
-        <section id="dashboard" class="panel" aria-labelledby="dashboard-title">
-            <h2 id="dashboard-title">Regional Analytics Dashboard</h2>
+        <section id="assistant" class="panel">
+            <h2 data-i18n="hero-title">✨ Interactive AI Guide</h2>
+            <div class="chat-container">
+                <div class="messages" id="chat-messages" aria-live="polite">
+                    <div class="message system" id="welcome-msg" data-i18n="welcome-msg">Hello! I am your Smart Election Assistant. How can I help you today?</div>
+                </div>
+                <div class="input-area">
+                    <button id="voice-btn" class="icon-btn" aria-label="Use voice input" title="Voice Input" style="background:transparent; border:none; padding:0.5rem;">🎤</button>
+                    <input type="text" id="chat-input" placeholder="Ask about registration, timelines, etc..." data-i18n-placeholder="chat-placeholder">
+                    <div class="upload-btn-wrapper">
+                        <button class="icon-btn" title="Upload ID for Verification" style="background:transparent; border:none; padding:0.5rem;">📄</button>
+                        <input type="file" id="id-upload" name="id-file" accept="image/*" />
+                    </div>
+                    <button id="send-btn" data-i18n="send">Send 🚀</button>
+                </div>
+                <div id="ocr-preview" class="ocr-preview">
+                    <p style="margin:0; font-size: 0.85rem; color: var(--success-color);">✨ Analyzing document with Gemini Vision...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="panel">
+            <h2 data-i18n="dash-title">📊 Regional Insights</h2>
             <div class="dashboard-controls">
-                <label for="state-select">Select State:</label>
-                <select id="state-select">
-                    <option value="all">All States</option>
-                    <option value="CA">California</option>
-                    <option value="NY">New York</option>
-                    <option value="TX">Texas</option>
-                    <option value="FL">Florida</option>
-                    <option value="IL">Illinois</option>
-                    <option value="PA">Pennsylvania</option>
-                </select>
-                <label for="district-select">Select District:</label>
-                <select id="district-select">
-                    <option value="all">All Districts</option>
-                    <option value="d1">District 1</option>
-                    <option value="d2">District 2</option>
-                    <option value="d3">District 3</option>
-                    <option value="d4">District 4</option>
-                </select>
+                <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+                    <label for="state-select" data-i18n="select-state" style="font-size:0.8rem; opacity:0.7;">Select State</label>
+                    <select id="state-select">
+                        <option value="all" data-i18n="state-all">All States</option>
+                        <option value="CA" data-i18n="state-ca">California</option>
+                        <option value="NY" data-i18n="state-ny">New York</option>
+                        <option value="TX" data-i18n="state-tx">Texas</option>
+                        <option value="FL" data-i18n="state-fl">Florida</option>
+                        <option value="IL" data-i18n="state-il">Illinois</option>
+                        <option value="PA" data-i18n="state-pa">Pennsylvania</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+                    <label for="district-select" data-i18n="select-district" style="font-size:0.8rem; opacity:0.7;">Select District</label>
+                    <select id="district-select">
+                        <option value="all" data-i18n="dist-all">All Districts</option>
+                        <option value="d1" data-i18n="dist-1">District 1</option>
+                        <option value="d2" data-i18n="dist-2">District 2</option>
+                        <option value="d3" data-i18n="dist-3">District 3</option>
+                    </select>
+                </div>
             </div>
             <div class="dashboard-charts">
                 <div class="chart-container">
                     <canvas id="turnoutChart" aria-label="Voter Turnout Chart" role="img"></canvas>
                 </div>
                 <div class="chart-container">
-                    <canvas id="queriesChart" aria-label="User Queries by Topic Chart" role="img"></canvas>
+                    <canvas id="queriesChart" aria-label="User Queries Chart" role="img"></canvas>
                 </div>
             </div>
-            <div id="ai-insights-container" style="margin-top: 2rem; padding: 1.5rem; background: rgba(3, 218, 198, 0.1); border-left: 4px solid var(--success-color); border-radius: 4px;">
-                <h3 style="margin-top:0; color: var(--success-color);">🤖 AI Dashboard Insight</h3>
-                <p id="ai-insight-text">Select a state to generate real-time AI predictions.</p>
+            <div id="ai-insights-container" style="margin-top: 2rem; padding: 1.5rem; background: rgba(0, 242, 234, 0.05); border-left: 4px solid var(--success-color); border-radius: 12px;">
+                <h3 style="margin-top:0; color: var(--success-color); font-size:1.1rem;">🤖 AI Dashboard Insight</h3>
+                <p id="ai-insight-text" data-i18n="insight-placeholder" style="font-size:0.95rem;">Select a state to generate real-time AI predictions.</p>
             </div>
 
-            <div id="timeline-container" class="timeline-container" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
-                <h3>📅 Your Personalized Election Deadlines</h3>
-                <div id="timeline-content" class="timeline-content">
-                    <p>Select a state above to view your deadlines.</p>
+            <!-- Sentiment Pulse Heatmap -->
+            <div id="sentiment-pulse" style="margin-top: 3rem;">
+                <h3 data-i18n="sentiment-header" style="font-size:1.1rem;">📊 AI Sentiment Pulse (Real-time)</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+                <div class="sentiment-grid">
+                    <div class="sentiment-card">
+                        <h4 data-i18n="sent-optimistic">Optimistic</h4>
+                        <div class="value" style="color: var(--success-color);">84%</div>
+                    </div>
+                    <div class="sentiment-card">
+                        <h4 data-i18n="sent-concerned">Concerned</h4>
+                        <div class="value" style="color: var(--error-color);">12%</div>
+                    </div>
+                    <div class="sentiment-card">
+                        <h4 data-i18n="sent-neutral">Neutral</h4>
+                        <div class="value" style="color: var(--text-secondary);">4%</div>
+                    </div>
                 </div>
             </div>
-            
-            <div id="maps-container" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
-                <h3>📍 Nearest Polling Location (Demo)</h3>
-                <iframe 
-                    title="Interactive map showing the nearest polling location"
-                    width="100%" 
-                    height="300" 
-                    style="border:0; border-radius:8px;" 
-                    loading="lazy" 
-                    allowfullscreen 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3151.835434509374!2d144.9537353153166!3d-37.81720997975171!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad65d4c2b349649%3A0xb6899234e561db11!2sEnvato!5e0!3m2!1sen!2sus!4v1611815525547!5m2!1sen!2sus">
-                </iframe>
+
+            <div id="timeline-container" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--glass-border);">
+                <h3 data-i18n="timeline-header" style="font-size:1.1rem;">📅 Key Deadlines</h3>
+                <div id="timeline-content">
+                    <p data-i18n="timeline-placeholder">Select a state above to view your deadlines.</p>
+                </div>
             </div>
         </section>
 
-        <section id="testing" class="panel" aria-labelledby="testing-title">
-            <h2 id="testing-title">System Health & Testing</h2>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
-                <div style="padding: 1rem; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--accent-color); margin: 0;">100%</h3>
-                    <p style="margin: 0.5rem 0 0 0;">Test Coverage</p>
-                </div>
-                <div style="padding: 1rem; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--success-color); margin: 0;">200 OK</h3>
-                    <p style="margin: 0.5rem 0 0 0;">API Status</p>
-                </div>
-                <div style="padding: 1rem; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-color);">
-                    <h3 style="color: #BB86FC; margin: 0;">0</h3>
-                    <p style="margin: 0.5rem 0 0 0;">Active Errors</p>
-                </div>
-            </div>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 1rem;">* Metrics updated in real-time. Automated unit tests (`pytest`) are passing seamlessly.</p>
-        </section>
-
-        <section id="quiz" class="panel" aria-labelledby="quiz-title">
-            <h2 id="quiz-title">Voter Readiness Quiz</h2>
+        <section id="quiz" class="panel">
+            <h2 data-i18n="quiz-title">🏁 Voter Readiness Quiz</h2>
             <div id="quiz-container">
-                <p id="quiz-question" style="font-size: 1.1rem; font-weight: 500;"></p>
-                <div id="quiz-options" style="display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0;"></div>
-                <p id="quiz-feedback" style="font-weight: bold; margin-top: 1rem;"></p>
+                <p id="quiz-question" style="font-size: 1.1rem; font-weight: 500; margin-bottom:1.5rem;"></p>
+                <div id="quiz-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;"></div>
+                <p id="quiz-feedback" style="font-weight: bold; margin-top: 1.5rem; text-align:center;"></p>
             </div>
-            <div id="badge-container" style="display: none; text-align: center; padding: 2rem; background: var(--bg-primary); border-radius: 8px; border: 2px solid var(--success-color);">
-                <h1 style="font-size: 4rem; margin: 0;">🏆</h1>
-                <h3 style="color: var(--success-color);">Certified Ready Voter!</h3>
-                <p>Congratulations! You scored 100% and are fully prepared for the election process.</p>
+            <div id="badge-container" style="display: none; text-align: center; padding: 2rem; background: rgba(0, 242, 234, 0.1); border-radius: 16px; border: 2px solid var(--success-color);">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
+                <h3 style="color: var(--success-color); font-size:1.5rem;" data-i18n="cert-ready">Certified Ready Voter!</h3>
+                <p style="margin-bottom: 1.5rem;">Congratulations! You scored 100% and are fully prepared for the election process.</p>
+                <button id="download-cert-btn" style="margin: 0 auto; background: var(--success-color); color: var(--bg-main);">🪪 Download Voter Badge</button>
+            </div>
+        </section>
+
+        <!-- AI Fact-Checker Section -->
+        <section id="fact-checker" class="panel">
+            <h2 data-i18n="fact-check-title">🛡️ AI Election Integrity</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Heard a claim or news headline? Use our AI to verify facts and fight misinformation.</p>
+            <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                <input type="text" id="fact-claim-input" placeholder="e.g. 'Voting deadlines have been extended by two weeks'" style="flex: 1;">
+                <button id="fact-check-btn">Verify Now</button>
+            </div>
+            <div id="fact-result" style="display: none; padding: 1.5rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
+                <div id="fact-status" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem;"></div>
+                <p id="fact-explanation" style="font-size: 0.95rem; margin-bottom: 1rem;"></p>
+                <div style="font-size: 0.8rem; opacity: 0.6;">Sources: <span id="fact-sources"></span></div>
+            </div>
+        </section>
+
+        <section id="testing" class="panel">
+            <h2 id="testing-title">🛰️ System Health</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align:center;">
+                    <div id="health-coverage-val" style="font-size:1.8rem; font-weight:700; color:var(--accent-color);">100%</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="health-coverage">Test Coverage</div>
+                </div>
+                <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align:center;">
+                    <div id="health-api-val" style="font-size:1.8rem; font-weight:700; color:var(--success-color);">OK</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="health-api">API Status</div>
+                </div>
+                <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align:center;">
+                    <div id="health-errors-val" style="font-size:1.8rem; font-weight:700; color:#BB86FC;">0</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="health-errors">Active Errors</div>
+                </div>
             </div>
         </section>
     </main>
 
     <!-- Login Modal -->
-    <div id="login-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <h2 id="modal-title" style="margin-top: 0; text-align: center;">Secure Login</h2>
-            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1.5rem;">For demo, use: <strong>voter / password123</strong></p>
+    <div id="login-modal" role="dialog" aria-modal="true" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div class="panel" style="width: 100%; max-width: 400px; text-align: center;">
+            <h2 style="justify-content: center;">Secure Access</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size:0.9rem;">For demo, use: <strong>voter / password123</strong></p>
             <form id="login-form" style="display: flex; flex-direction: column; gap: 1rem;">
-                <label for="username" class="sr-only" style="display:none;">Username</label>
-                <input type="text" id="username" placeholder="Username" required style="padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
-                <label for="password" class="sr-only" style="display:none;">Password</label>
-                <input type="password" id="password" placeholder="Password" required style="padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
-                <button type="submit" style="background: var(--accent-color); padding: 1rem; font-size: 1rem; cursor: pointer;">Login</button>
-                <p id="login-error" role="alert" aria-live="assertive" style="color: var(--error-color); text-align: center; margin: 0; display: none;">Invalid credentials</p>
+                <input type="text" id="username" placeholder="Username" required style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding:0.8rem;">
+                <input type="password" id="password" placeholder="Password" required style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; padding:0.8rem;">
+                <button type="submit" style="justify-content:center; padding:1rem;">Authenticate 🛡️</button>
+                <p id="login-error" role="alert" style="color: var(--error-color); font-size:0.85rem; display: none;">Invalid credentials</p>
             </form>
         </div>
     </div>
 
-    <footer role="contentinfo">
-        <p>&copy; 2026 Smart Election Assistant Team. For educational purposes.</p>
+    <footer>
+        <p>&copy; 2026 Smart Election Assistant Team. Designed for Excellence.</p>
     </footer>
 
     <script src="/static/js/main.js"></script>
