@@ -4,11 +4,14 @@ import os
 from dotenv import load_dotenv
 
 # Configure basic logging immediately to catch startup errors in Cloud Run logs
+print("DEBUG: main.py is being loaded...")
 logging.basicConfig(
     level=logging.INFO,
-    format='%(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
+logger_startup = logging.getLogger("startup")
+logger_startup.info("DEBUG: logging initialized.")
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse
