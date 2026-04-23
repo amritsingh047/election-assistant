@@ -76,6 +76,15 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global error handler to prevent generic 500 errors and log the root cause."""
+    logger.error(f"Global Exception caught: {str(exc)}", extra={"extra_args": {"path": request.url.path}})
+    return Response(
+        content=f"Internal Server Error: {str(exc)}",
+        status_code=500
+    )
+
 # Static files and Templates
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
@@ -83,7 +92,7 @@ templates = Jinja2Templates(directory="frontend/templates")
 @app.get("/", response_class=HTMLResponse, summary="Main Entrypoint", description="Serves the main HTML application.")
 @limiter.limit("20/minute")
 async def read_root(request: Request) -> Response:
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html", context={})
 
 @app.get("/api/health", summary="Health Check", description="Returns the health status of the API.")
 @limiter.limit("60/minute")

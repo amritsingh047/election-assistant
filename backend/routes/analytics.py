@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends
 from functools import lru_cache
 from typing import Dict, Any, List, Union
 from services.gemini_service import gemini_service
+from google.genai import types
 from backend.routes.auth import verify_token
 
 router = APIRouter()
 
-# Initialize the Gemini Client for insights from modular service
-insight_client = gemini_service.get_client()
+# Initialize the Gemini Client for insights lazily
+def get_insight_client():
+    return gemini_service.get_client()
 
 # Mock data for the dashboard to hit the ground running
 MOCK_DATA: Dict[str, Dict[str, Union[List[str], List[int]]]] = {
@@ -49,6 +51,7 @@ async def get_dashboard_data(state: str = "all", district: str = "all", current_
     
     # Generate Advanced AI Insight based on the multi-dimensional data
     insight_text: str = "AI Insights not available (API Key missing)."
+    insight_client = get_insight_client()
     if insight_client:
         try:
             # Create a more analytical prompt for Gemini

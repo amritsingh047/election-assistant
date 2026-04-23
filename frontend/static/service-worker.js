@@ -1,4 +1,4 @@
-const CACHE_NAME = 'election-assistant-v1';
+const CACHE_NAME = 'election-assistant-v2';
 const ASSETS = [
   '/',
   '/static/css/styles.css',

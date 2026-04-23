@@ -162,7 +162,7 @@
         <section id="quiz" class="panel">
             <h2 data-i18n="quiz-title">🏁 Voter Readiness Quiz</h2>
             <div id="quiz-container">
-                <p id="quiz-question" style="font-size: 1.1rem; font-weight: 500; margin-bottom:1.5rem;"></p>
+                <p id="quiz-question"></p>
                 <div id="quiz-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;"></div>
                 <p id="quiz-feedback" style="font-weight: bold; margin-top: 1.5rem; text-align:center;"></p>
             </div>
@@ -177,10 +177,10 @@
         <!-- AI Fact-Checker Section -->
         <section id="fact-checker" class="panel">
             <h2 data-i18n="fact-check-title">🛡️ AI Election Integrity</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Heard a claim or news headline? Use our AI to verify facts and fight misinformation.</p>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;" data-i18n="fact-check-desc">Heard a claim or news headline? Use our AI to verify facts and fight misinformation.</p>
             <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-                <input type="text" id="fact-claim-input" placeholder="e.g. 'Voting deadlines have been extended by two weeks'" style="flex: 1;">
-                <button id="fact-check-btn">Verify Now</button>
+                <input type="text" id="fact-claim-input" placeholder="e.g. 'Voting deadlines have been extended by two weeks'" data-i18n-placeholder="fact-placeholder" style="flex: 1;">
+                <button id="fact-check-btn" data-i18n="verify-now">Verify Now</button>
             </div>
             <div id="fact-result" style="display: none; padding: 1.5rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
                 <div id="fact-status" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem;"></div>
@@ -190,7 +190,7 @@
         </section>
 
         <section id="testing" class="panel">
-            <h2 id="testing-title">🛰️ System Health</h2>
+            <h2 id="testing-title" data-i18n="health-title">🛰️ System Health</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                 <div style="padding: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; text-align:center;">
                     <div id="health-coverage-val" style="font-size:1.8rem; font-weight:700; color:var(--accent-color);">100%</div>

@@ -191,6 +191,44 @@ h2 {
     box-shadow: 0 4px 15px rgba(78, 172, 254, 0.3);
 }
 
+/* Quiz Section Enhancements */
+.quiz-option {
+    padding: 1rem;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--text-primary) !important;
+    justify-content: center;
+    font-weight: 600 !important;
+    transition: var(--transition-fast);
+    cursor: pointer;
+}
+
+.quiz-option:hover {
+    background: var(--accent-color) !important;
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+[data-theme="light"] .quiz-option {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #1a202c !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+#quiz-question {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+#quiz-feedback {
+    font-weight: bold;
+    margin-top: 1.5rem;
+    text-align: center;
+    color: var(--text-primary);
+}
+
 .input-area {
     display: flex;
     gap: 0.75rem;

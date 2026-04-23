@@ -57,7 +57,12 @@ const translations = {
             { q: "When is the next general Election Day?", options: ["Nov 5", "Dec 25", "July 4"], a: "Nov 5" },
             { q: "Can you register to vote online in most states?", options: ["Yes", "No"], a: "Yes" },
             { q: "What is required to vote at the polls in many states?", options: ["Passport", "Voter ID", "Birth Certificate"], a: "Voter ID" }
-        ]
+        ],
+        'fact-check-title': '🛡️ AI Election Integrity',
+        'fact-check-desc': 'Heard a claim or news headline? Use our AI to verify facts and fight misinformation.',
+        'fact-placeholder': "e.g. 'Voting deadlines have been extended by two weeks'",
+        'verify-now': 'Verify Now',
+        'health-title': '🛰️ System Health'
     },
     'hi': {
         'title': 'स्मार्ट चुनाव सहायक',
@@ -117,7 +122,12 @@ const translations = {
             { q: "अगला आम चुनाव कब है?", options: ["5 नवंबर", "25 दिसंबर", "4 जुलाई"], a: "5 नवंबर" },
             { q: "क्या आप अधिकांश राज्यों में ऑनलाइन मतदान के लिए पंजीकरण कर सकते हैं?", options: ["हाँ", "नहीं"], a: "हाँ" },
             { q: "कई राज्यों में मतदान केंद्रों पर मतदान करने के लिए क्या आवश्यक है?", options: ["पासपोर्ट", "मतदाता पहचान पत्र", "जन्म प्रमाण पत्र"], a: "मतदाता पहचान पत्र" }
-        ]
+        ],
+        'fact-check-title': '🛡️ एआई चुनाव अखंडता',
+        'fact-check-desc': 'कोई दावा या समाचार हेडलाइन सुनी? तथ्यों को सत्यापित करने और गलत सूचना से लड़ने के लिए हमारे एआई का उपयोग करें।',
+        'fact-placeholder': "जैसे 'मतदान की समय सीमा दो सप्ताह बढ़ा दी गई है'",
+        'verify-now': 'अभी सत्यापित करें',
+        'health-title': '🛰️ सिस्टम स्वास्थ्य'
     },
     'fr': {
         'title': 'Assistant Électoral Intelligent',
@@ -173,7 +183,12 @@ const translations = {
             { q: "Quand a lieu le prochain jour d'élection générale ?", options: ["5 nov", "25 déc", "4 juil"], a: "5 nov" },
             { q: "Pouvez-vous vous inscrire pour voter en ligne dans la plupart des états ?", options: ["Oui", "Non"], a: "Oui" },
             { q: "Qu'est-ce qui est requis pour voter aux urnes dans de nombreux états ?", options: ["Passeport", "Carte d'électeur", "Certificat de naissance"], a: "Carte d'électeur" }
-        ]
+        ],
+        'fact-check-title': '🛡️ Intégrité électorale IA',
+        'fact-check-desc': 'Vous avez entendu une affirmation ? Utilisez notre IA pour vérifier les faits.',
+        'fact-placeholder': "ex: 'Les délais de vote ont été prolongés'",
+        'verify-now': 'Vérifier maintenant',
+        'health-title': '🛰️ Santé du système'
     },
     'pt-BR': {
         'title': 'Assistente Eleitoral Inteligente',
@@ -229,7 +244,12 @@ const translations = {
             { q: "Quando é o próximo dia de eleição geral?", options: ["5 de nov", "25 de dez", "4 de jul"], a: "5 de nov" },
             { q: "Você pode se registrar para votar online na maioria dos estados?", options: ["Sim", "Não"], a: "Sim" },
             { q: "O que é necessário para votar nas urnas em muitos estados?", options: ["Passaporte", "ID do Eleitor", "Certidão de Nascimento"], a: "ID do Eleitor" }
-        ]
+        ],
+        'fact-check-title': '🛡️ Integridade Eleitoral IA',
+        'fact-check-desc': 'Ouviu alguma afirmação? Use nossa IA para verificar fatos.',
+        'fact-placeholder': "ex: 'Os prazos de votação foram prorrogados'",
+        'verify-now': 'Verificar Agora',
+        'health-title': '🛰️ Saúde do Sistema'
     },
     'de': {
         'title': 'Intelligenter Wahlhelfer',
@@ -285,7 +305,12 @@ const translations = {
             { q: "Wann ist der nächste allgemeine Wahltag?", options: ["5. Nov.", "25. Dez.", "4. Juli"], a: "5. Nov." },
             { q: "Kann man sich in den meisten Bundesstaaten online zur Wahl registrieren?", options: ["Ja", "Nein"], a: "Ja" },
             { q: "Was ist in vielen Bundesstaaten erforderlich, um an den Wahlurnen zu wählen?", options: ["Reisepass", "Wählerausweis", "Geburtsurkunde"], a: "Wählerausweis" }
-        ]
+        ],
+        'fact-check-title': '🛡️ KI-Wahlintegrität',
+        'fact-check-desc': 'Eine Behauptung gehört? Nutzen Sie unsere KI zur Faktenprüfung.',
+        'fact-placeholder': "z.B. 'Wahlfristen wurden verlängert'",
+        'verify-now': 'Jetzt prüfen',
+        'health-title': '🛰️ Systemstatus'
     },
     'es': {
         'title': 'Asistente Electoral Inteligente',
@@ -341,7 +366,12 @@ const translations = {
             { q: "¿Cuándo es el próximo día de elección general?", options: ["5 de nov", "25 de dez", "4 de jul"], a: "5 de nov" },
             { q: "¿Puede registrarse para votar en línea en la mayoría de los estados?", options: ["Sí", "No"], a: "Sí" },
             { q: "¿Qué se requiere para votar en las urnas en muchos estados?", options: ["Pasaporte", "Identificación", "Certificado"], a: "Identificación" }
-        ]
+        ],
+        'fact-check-title': '🛡️ Integridad Electoral IA',
+        'fact-check-desc': '¿Escuchó un reclamo? Use nuestra IA para verificar hechos.',
+        'fact-placeholder': "ej. 'Los plazos de votación se han extendido'",
+        'verify-now': 'Verificar ahora',
+        'health-title': '🛰️ Estado del Sistema'
     },
     'ja': {
         'title': 'スマート選挙アシスタント',
@@ -397,7 +427,12 @@ const translations = {
             { q: "次の総選挙日はいつですか？", options: ["11月5日", "12月25日", "7月4日"], a: "11月5日" },
             { q: "ほとんどの州でオンラインで有権者登録ができますか？", options: ["はい", "いいえ"], a: "はい" },
             { q: "多くの州で投票所で投票するために必要なものは何ですか？", options: ["パスポート", "有権者ID", "出生証明書"], a: "有権者ID" }
-        ]
+        ],
+        'fact-check-title': '🛡️ AI選挙の誠実性',
+        'fact-check-desc': '主張を聞きましたか？事実を確認するためにAIを使用してください。',
+        'fact-placeholder': "例：'投票期限が延長されました'",
+        'verify-now': '今すぐ確認',
+        'health-title': '🛰️ システムの状態'
     },
     'zh': {
         'title': '智能选举助手',
@@ -453,7 +488,12 @@ const translations = {
             { q: "下一次大选日是什么时候？", options: ["11月5日", "12月25日", "7月4日"], a: "11月5日" },
             { q: "大多数州可以进行在线选民注册吗？", options: ["可以", "不可以"], a: "可以" },
             { q: "在许多州，在投票站投票需要什么？", options: ["护照", "选民身份证", "出生证明"], a: "选民身份证" }
-        ]
+        ],
+        'fact-check-title': '🛡️ AI 选举诚信',
+        'fact-check-desc': '听到传闻了？使用我们的 AI 验证事实。',
+        'fact-placeholder': "例如：'投票截止日期已延长'",
+        'verify-now': '立即验证',
+        'health-title': '🛰️ 系统运行状况'
     },
     'ar': {
         'title': 'مساعد الانتخابات الذكي',
@@ -509,6 +549,11 @@ const translations = {
             { q: "متى موعد يوم الانتخابات العامة القادم؟", options: ["5 نوفمبر", "25 ديسمبر", "4 يوليو"], a: "5 نوفمبر" },
             { q: "هل يمكنك التسجيل للتصويت عبر الإنترنت في معظم الولايات؟", options: ["نعم", "لا"], a: "نعم" },
             { q: "ما هو المطلوب للتصويت في مراكز الاقتراع في العديد من الولايات؟", options: ["جواز سفر", "هوية الناخب", "شهادة ميلاد"], a: "هوية الناخب" }
-        ]
+        ],
+        'fact-check-title': '🛡️ نزاهة الانتخابات بالذكاء الاصطناعي',
+        'fact-check-desc': 'هل سمعت ادعاءً؟ استخدم ذكاءنا الاصطناعي للتحقق من الحقائق.',
+        'fact-placeholder': "مثال: 'تم تمديد المواعيد النهائية للتصويت'",
+        'verify-now': 'تحقق الآن',
+        'health-title': '🛰️ حالة النظام'
     }
 };

@@ -22,8 +22,9 @@ class ChatResponse(BaseModel):
     """Response model for the chatbot."""
     reply: str = Field(..., description="The AI assistant's response")
 
-# Initialize the Gemini Client from Modular Service
-client = gemini_service.get_client()
+# Initialize the Gemini Client lazily inside endpoints to prevent startup crashes
+def get_ai_client():
+    return gemini_service.get_client()
 
 SYSTEM_INSTRUCTION: str = """
 You are a Smart Election Assistant. Your goal is to help citizens understand the election process,
@@ -40,25 +41,13 @@ You must respond in the following language code: {lang}
     description="Sends a user query to the Gemini AI and returns a localized response. Requires authentication."
 )
 async def chat_with_assistant(req: ChatRequest, current_user: str = Depends(verify_token)) -> ChatResponse:
-    """
-    Processes a chat message using the Gemini AI API.
-
-    Args:
-        req (ChatRequest): The chat request containing message and language preference.
-        current_user (str): The authenticated user's username.
-
-    Returns:
-        ChatResponse: The AI generated reply.
-
-    Raises:
-        HTTPException: If the AI generation fails.
-    """
+    client = get_ai_client()
     if not client:
         logger.warning("Chat endpoint called, but Gemini API key is missing. Returning mock.")
         return ChatResponse(reply="System: Gemini API key is not configured yet. This is a mock response: " + req.message)
     
     try:
-        logger.info(f"Processing chat request for user {current_user}", extra_args={"language": req.language})
+        logger.info(f"Processing chat request for user {current_user}", extra={"extra_args": {"language": req.language}})
         
         # We use the gemini-2.5-flash model for fast, efficient chat
         dynamic_system_instruction: str = SYSTEM_INSTRUCTION.replace("{lang}", req.language)
@@ -66,12 +55,12 @@ async def chat_with_assistant(req: ChatRequest, current_user: str = Depends(veri
         # Apply strict Safety Settings for enterprise deployment
         safety_settings = [
             types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+                category="HATE_SPEECH",
+                threshold="BLOCK_LOW_AND_ABOVE",
             ),
             types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+                category="HARASSMENT",
+                threshold="BLOCK_LOW_AND_ABOVE",
             )
         ]
 

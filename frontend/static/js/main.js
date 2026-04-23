@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const lang = e.target.value;
             localStorage.setItem('language', lang);
             applyTranslations(lang);
+            initQuiz(); // Re-initialize quiz with new language
         });
         const savedLang = localStorage.getItem('language') || 'en';
         langSelect.value = savedLang;
@@ -506,10 +507,7 @@ function initQuiz() {
     qData.options.forEach(opt => {
         const btn = document.createElement('button');
         btn.textContent = opt;
-        btn.style.padding = '1rem';
-        btn.style.background = 'rgba(255,255,255,0.05)';
-        btn.style.border = '1px solid var(--glass-border)';
-        btn.style.justifyContent = 'center';
+        btn.className = 'quiz-option';
         btn.onclick = () => {
             if(opt === qData.a) { score++; }
             currentQ++;
