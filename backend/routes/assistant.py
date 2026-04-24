@@ -73,8 +73,9 @@ async def chat_with_assistant(req: ChatRequest, current_user: str = Depends(veri
                 safety_settings=safety_settings
             )
         )
-        logger.info("Successfully generated AI response.")
-        return ChatResponse(reply=response.text)
+        logger.info("Successfully generated AI response.");
+        reply_text = response.text or "I'm sorry, I cannot answer that question based on current election safety guidelines."
+        return ChatResponse(reply=reply_text)
     except Exception as e:
         logger.error(f"Error during Gemini generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

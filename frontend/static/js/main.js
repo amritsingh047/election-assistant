@@ -353,8 +353,10 @@ async function sendMessage() {
         if (response.status === 401) { handleUnauthorized(); return; }
 
         const data = await response.json();
+        const replyText = data.reply || "I'm sorry, I couldn't generate a response. Please try again.";
+        
         sysMsg.innerHTML = `
-            <div class="reply-text">${data.reply}</div>
+            <div class="reply-text">${replyText}</div>
             <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
                 <button onclick="speak(this.closest('.message').querySelector('.reply-text').textContent)" style="padding: 4px 8px; font-size: 0.7rem; background: var(--glass-bg); border: 1px solid var(--glass-border);">🔊 Listen</button>
                 <span style="font-size: 0.7rem; color: var(--success-color);">🛡️ Verified Source</span>
