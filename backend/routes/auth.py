@@ -4,30 +4,41 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import jwt
+import firebase_admin
+from firebase_admin import auth, credentials
+
+from backend.config import settings
 
 router = APIRouter()
 
-# --- Config for JWT ---
-SECRET_KEY: str = "my_super_secret_hackathon_key_do_not_use_in_prod"
-ALGORITHM: str = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+# Initialize Firebase Admin if not already initialized
+try:
+    firebase_admin.get_app()
+except ValueError:
+    # Use default credentials (Service Account) in production
+    firebase_admin.initialize_app()
+
+# --- Config for JWT using Centralized Settings ---
+SECRET_KEY: str = settings.SECRET_KEY
+ALGORITHM: str = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 # --- Mock Database ---
 MOCK_USER: Dict[str, str] = {
     "username": "voter",
-    "password": "password123"  # In a real app, this would be a hashed password
+    "password": "password123"
 }
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 class Token(BaseModel):
     """Token response model."""
-    access_token: str = Field(..., description="The JWT access token string")
+    access_token: str = Field(..., description="The JWT or Firebase access token string")
     token_type: str = Field(..., description="The type of the token (e.g., bearer)")
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
-    Creates a new JSON Web Token.
+    Creates a new JSON Web Token for legacy authentication.
 
     Args:
         data (Dict[str, Any]): The payload to encode in the token.
@@ -45,19 +56,35 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     encoded_jwt: str = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def verify_token(token: str = Depends(oauth2_scheme)) -> str:
+async def verify_token(token: str = Depends(oauth2_scheme)) -> str:
     """
-    Verifies the provided JWT token.
-
+    Verifies the provided token (Supports both Legacy JWT and Firebase ID Tokens).
+    
     Args:
-        token (str): The JWT token extracted from the Authorization header.
+        token (str): The token extracted from the Authorization header.
 
     Returns:
-        str: The authenticated username.
+        str: The authenticated username or email.
 
     Raises:
         HTTPException: If the token is invalid or expired.
     """
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 1. Try Firebase Token Verification first (Modern Standard)
+    try:
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token.get("email") or decoded_token.get("uid")
+    except Exception:
+        # Not a valid Firebase token, fallback to legacy JWT
+        pass
+
+    # 2. Try Legacy JWT Verification
     try:
         payload: Dict[str, Any] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: Optional[str] = payload.get("sub")
