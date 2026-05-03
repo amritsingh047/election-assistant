@@ -1,3 +1,5 @@
+"use strict";
+
 document.addEventListener('DOMContentLoaded', () => {
     // Check Authentication
     checkAuth();
@@ -11,24 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 1. Initialize Dashboard Charts with Robustness
+    // 1. Initialize Dashboard Charts & Map
     try {
         if (typeof Chart !== 'undefined') {
             initCharts();
-        } else {
-            console.error("Chart.js not loaded. Dashboard metrics will be unavailable.");
-            document.querySelectorAll('.chart-container').forEach(el => {
-                el.innerHTML = '<p style="padding:2rem; color:var(--text-secondary);">Charts currently unavailable (CDN load fail).</p>';
-            });
+            refreshDashboard(); // Initial load
+            setInterval(refreshDashboard, 30000); // Refresh every 30s
         }
     } catch (e) {
-        console.error("Failed to initialize charts:", e);
+        console.error("Failed to initialize dashboard:", e);
     }
 
-    // 2. Setup Chatbot Interactivity
+    // 2. Setup Assistant Interactivity
     const sendBtn = document.getElementById('send-btn');
-    const chatInput = document.getElementById('chat-input');
-    
+    const chatInput = document.getElementById('user-input');
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     if (chatInput) {
         chatInput.addEventListener('keypress', (e) => {
@@ -36,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle form states for Timeline and Insights
+    // 3. Handle form states for Timeline and Insights
     const stateSelect = document.getElementById('state-select');
     if (stateSelect) {
         stateSelect.addEventListener('change', async (e) => {
@@ -60,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timelineContent) timelineContent.innerHTML = `<p>${dict['loading']}</p>`;
             if (insightText) {
                 insightText.textContent = dict['generating'];
-                insightText.removeAttribute('data-i18n'); // Clear attribute while loading
+                insightText.removeAttribute('data-i18n');
             }
             
             try {
@@ -74,479 +72,303 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (timelineContent) {
                     timelineContent.innerHTML = `
-                        <ul style="list-style:none; padding:0; display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
-                            <li style="padding:1rem; background:rgba(255,255,255,0.05); border-radius:12px;"><strong>${dict['label-reg']}</strong><br>${data.dates.registration}</li>
-                            <li style="padding:1rem; background:rgba(255,255,255,0.05); border-radius:12px;"><strong>${dict['label-early']}</strong><br>${data.dates.early_voting}</li>
-                            <li style="padding:1rem; background:rgba(255,255,255,0.05); border-radius:12px;"><strong>${dict['label-election']}</strong><br>${data.dates.election_day}</li>
-                        </ul>
+                        <div class="timeline-item glass-inner"><strong>${dict['label-reg']}</strong><br>${data.dates.registration}</div>
+                        <div class="timeline-item glass-inner"><strong>${dict['label-early']}</strong><br>${data.dates.early_voting}</div>
+                        <div class="timeline-item glass-inner active-glow"><strong>${dict['label-election']}</strong><br>${data.dates.election_day}</div>
                     `;
                 }
                 
-                // Fetch Dashboard Data (AI Insight)
+                // Fetch Dashboard Data
                 const dashResponse = await fetch(`/api/dashboard-data?state=${state}`, { headers });
                 if (dashResponse.status === 401) { handleUnauthorized(); return; }
                 
                 const dashData = await dashResponse.json();
                 if (insightText) insightText.textContent = dashData.ai_insight || dict['insight-error'];
                 
+                if (dashData.real_metrics) {
+                    updateDashboardUI(dashData);
+                }
             } catch(err) {
-                if (timelineContent) timelineContent.innerHTML = `<p>${dict['error-load']}</p>`;
-                if (insightText) insightText.textContent = dict['error-load'];
+                console.error(err);
             }
         });
     }
 
-    // Handle Language
+    // 4. Handle Language
     const langSelect = document.getElementById('language-select');
     if (langSelect) {
         langSelect.addEventListener('change', (e) => {
             const lang = e.target.value;
             localStorage.setItem('language', lang);
             applyTranslations(lang);
-            initQuiz(); // Re-initialize quiz with new language
+            initQuiz();
         });
         const savedLang = localStorage.getItem('language') || 'en';
         langSelect.value = savedLang;
         applyTranslations(savedLang);
     }
 
-    // Setup Quiz with Robustness
-    try {
-        initQuiz();
-    } catch (e) {
-        console.error("Failed to initialize Quiz:", e);
-    }
-
-    // 3. Setup Theme Toggle
+    // 5. Theme Toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
         const currentTheme = localStorage.getItem('theme') || 'dark';
         if (currentTheme === 'light') {
             document.body.setAttribute('data-theme', 'light');
             themeToggle.textContent = '🌙';
+        } else {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
         }
-
         themeToggle.addEventListener('click', () => {
             let theme = document.body.getAttribute('data-theme');
-            if (theme === 'light') {
-                document.body.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'dark');
-                themeToggle.textContent = '☀️';
-                if (typeof Chart !== 'undefined') updateChartsTheme('dark');
-            } else {
-                document.body.setAttribute('data-theme', 'light');
-                localStorage.setItem('theme', 'light');
-                themeToggle.textContent = '🌙';
-                if (typeof Chart !== 'undefined') updateChartsTheme('light');
+            let newTheme = theme === 'dark' ? 'light' : 'dark';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+
+            // Re-init charts and map
+            if (chartInstances.turnout) {
+                chartInstances.turnout.destroy();
+                chartInstances.sentiment.destroy();
+                initCharts();
+                refreshDashboard();
+            }
+            if (googleMap) {
+                googleMap.setOptions({ styles: newTheme === 'dark' ? getDarkMapStyle() : getLightMapStyle() });
             }
         });
     }
 
-    // 4. Setup Voice Recognition
+    // 6. Voice Recognition
     const voiceBtn = document.getElementById('voice-btn');
     if (voiceBtn) {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            try {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-
-                voiceBtn.addEventListener('click', () => {
-                    try {
-                        voiceBtn.classList.add('pulse-recording');
-                        recognition.start();
-                    } catch (e) {
-                        voiceBtn.classList.remove('pulse-recording');
-                    }
-                });
-
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    const chatInput = document.getElementById('chat-input');
-                    if (chatInput) chatInput.value = transcript;
-                    voiceBtn.classList.remove('pulse-recording');
-                    sendMessage();
-                };
-
-                recognition.onerror = () => { voiceBtn.classList.remove('pulse-recording'); };
-                recognition.onend = () => { voiceBtn.classList.remove('pulse-recording'); };
-            } catch (e) {
-                voiceBtn.style.display = 'none';
-            }
-        } else {
-            voiceBtn.style.display = 'none';
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            voiceBtn.addEventListener('click', () => {
+                voiceBtn.classList.add('pulse-recording');
+                recognition.start();
+            });
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                if (chatInput) chatInput.value = transcript;
+                voiceBtn.classList.remove('pulse-recording');
+                sendMessage();
+            };
+            recognition.onend = () => voiceBtn.classList.remove('pulse-recording');
         }
     }
 
-    // 5. Setup OCR ID Upload
-    const idUpload = document.getElementById('id-upload');
-    if (idUpload) {
-        idUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const preview = document.getElementById('ocr-preview');
-            preview.style.display = 'block';
-
-            const formData = new FormData();
-            formData.append('file', file);
+    // 7. Login Form Handler
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/assistant/upload-id', {
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: formData
                 });
 
-                if (response.status === 401) { handleUnauthorized(); return; }
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    const analysis = result.analysis;
-                    preview.innerHTML = `
-                        <div style="color: var(--success-color); font-weight: bold;">✅ Verification Complete</div>
-                        <div style="font-size: 0.85rem; margin-top: 0.5rem;">
-                            <strong>Name:</strong> ${analysis.name}<br>
-                            <strong>ID:</strong> ${analysis.id_number}<br>
-                            <strong>State:</strong> ${analysis.state}
-                        </div>
-                    `;
-                    // Auto-prefill state if extracted
-                    const stateSelect = document.getElementById('state-select');
-                    if (stateSelect && analysis.state) {
-                        // Find matching option (simple fuzzy match demo)
-                        for (let opt of stateSelect.options) {
-                            if (analysis.state.toLowerCase().includes(opt.text.toLowerCase())) {
-                                stateSelect.value = opt.value;
-                                stateSelect.dispatchEvent(new Event('change'));
-                                break;
-                            }
-                        }
-                    }
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    checkAuth();
+                    refreshDashboard();
+                } else {
+                    alert("Invalid Credentials");
                 }
             } catch (err) {
-                preview.innerHTML = `<p style="color:var(--error-color);">Analysis failed.</p>`;
+                console.error("Login failed:", err);
             }
         });
     }
 
-    // 6. Setup AI Fact-Checker
-    const factBtn = document.getElementById('fact-check-btn');
-    if (factBtn) {
-        factBtn.addEventListener('click', async () => {
-            const input = document.getElementById('fact-claim-input');
-            const resultDiv = document.getElementById('fact-result');
-            const claim = input.value.trim();
-            if (!claim) return;
-            factBtn.disabled = true;
-            factBtn.textContent = '...';
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/assistant/fact-check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ claim })
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const res = data.result;
-                    resultDiv.style.display = 'block';
-                    const statusEl = document.getElementById('fact-status');
-                    statusEl.textContent = res.status;
-                    statusEl.style.color = res.status === 'Verified' ? 'var(--success-color)' : 'var(--error-color)';
-                    document.getElementById('fact-explanation').textContent = res.explanation;
-                    document.getElementById('fact-sources').textContent = res.sources.join(', ');
-                }
-            } catch (err) { console.error("Fact-check failed"); }
-            finally { factBtn.disabled = false; factBtn.textContent = 'Verify Now'; }
+    // 8. Logout Handler
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.reload();
         });
     }
 
-    // 7. Voter Badge Logic
-    const badgeBtn = document.getElementById('download-cert-btn');
-    if (badgeBtn) {
-        badgeBtn.addEventListener('click', () => {
-            alert("Voter Badge Generated! In a production app, this would trigger a PDF/PNG download with your name.");
+    // 9. Login Nav Button Handler
+    const loginNavBtn = document.getElementById('login-nav-btn');
+    if (loginNavBtn) {
+        loginNavBtn.addEventListener('click', () => {
+            const modal = document.getElementById('login-modal');
+            if (modal) modal.style.display = 'flex';
+        });
+    }
+
+    // 10. Nav Links Active State
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // Trigger Google Map resize when switching to dashboard to fix rendering issues
+            if (link.getAttribute('href') === '#dashboard' && googleMap) {
+                setTimeout(() => {
+                    google.maps.event.trigger(googleMap, 'resize');
+                    googleMap.setCenter({ lat: 20.5937, lng: 78.9629 });
+                }, 100);
+            }
+        });
+    });
+
+    // 11. Google Sign-In Handler (Firebase)
+    const googleBtn = document.getElementById('google-signin-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            try {
+                // Ensure Firebase is configured (Config usually injected or hardcoded for hackathons)
+                // Note: For a real app, use environmental injection.
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                
+                // Get ID Token to send to Backend
+                const idToken = await result.user.getIdToken();
+                localStorage.setItem('token', idToken);
+                
+                // Close modal and refresh
+                const modal = document.getElementById('login-modal');
+                if (modal) modal.style.display = 'none';
+                
+                checkAuth();
+                refreshDashboard();
+                
+                // Success feedback
+                appendMessage('ai', `Welcome, ${result.user.displayName}! You have successfully authenticated via Google.`);
+                
+            } catch (error) {
+                console.error("Google Auth Failed:", error);
+                alert("Google Authentication Failed: " + error.message);
+            }
         });
     }
 });
 
-/**
- * Updates the Voter Readiness Roadmap steps.
- * @param {string} stepId - The ID of the roadmap step.
- * @param {boolean} completed - Whether the step is completed.
- */
-function updateRoadmap(stepId, completed) {
-    const el = document.getElementById(stepId);
-    if (!el) return;
-    if (completed) {
-        el.classList.add('completed');
-        el.classList.remove('active');
-        // Set next step to active
-        const next = el.nextElementSibling;
-        if (next) next.classList.add('active');
-    } else {
-        el.classList.remove('completed');
-    }
-}
-
-/**
- * Speaks the given text using the Web Speech API.
- * @param {string} text - The text to speak.
- */
-function speak(text) {
-    if ('speechSynthesis' in window) {
-        // Cancel existing speech
-        window.speechSynthesis.cancel();
-        
-        const lang = localStorage.getItem('language') || 'en';
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang;
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        
-        window.speechSynthesis.speak(utterance);
-    }
-}
-
-/**
- * Sends a user message to the chat API and displays the response.
- */
 async function sendMessage() {
-    const input = document.getElementById('chat-input');
+    const chatInput = document.getElementById('user-input');
     const messagesContainer = document.getElementById('chat-messages');
-    const text = input.value.trim();
     
-    if (!text) return;
+    const message = chatInput.value.trim();
+    if (!message) return;
 
-    updateRoadmap('step-consult', true);
+    appendMessage('user', message);
+    chatInput.value = '';
 
-    // Add user message
-    const userMsg = document.createElement('div');
-    userMsg.className = 'message user';
-    userMsg.textContent = text;
-    messagesContainer.appendChild(userMsg);
-    input.value = '';
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    // Show loading
-    const sysMsg = document.createElement('div');
-    sysMsg.className = 'message system';
-    sysMsg.textContent = "...";
-    messagesContainer.appendChild(sysMsg);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const lang = localStorage.getItem('language') || 'en';
+    const state = document.getElementById('state-select')?.value || 'all';
 
     try {
-        const lang = localStorage.getItem('language') || 'en';
-        const token = localStorage.getItem('token');
         const response = await fetch('/api/assistant/chat', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify({ message: text, language: lang })
+            body: JSON.stringify({ message, language: lang, state })
         });
         
-        if (response.status === 401) { handleUnauthorized(); return; }
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.detail || 'Service Error');
+        }
 
         const data = await response.json();
-        const replyText = data.reply || "I'm sorry, I couldn't generate a response. Please try again.";
-        
-        sysMsg.innerHTML = `
-            <div class="reply-text">${replyText}</div>
-            <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                <button onclick="speak(this.closest('.message').querySelector('.reply-text').textContent)" style="padding: 4px 8px; font-size: 0.7rem; background: var(--glass-bg); border: 1px solid var(--glass-border);">🔊 Listen</button>
-                <span style="font-size: 0.7rem; color: var(--success-color);">🛡️ Verified Source</span>
-            </div>
-        `;
-    } catch (error) {
-        sysMsg.textContent = "Error connecting to AI.";
-    }
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-/**
- * Initializes the Chart.js instances for the dashboard.
- */
-function initCharts() {
-    const ctxTurnout = document.getElementById('turnoutChart').getContext('2d');
-    window.turnoutChart = new Chart(ctxTurnout, {
-        type: 'bar',
-        data: {
-            labels: ['2016', '2018', '2020', '2022', '2024'],
-            datasets: [{
-                label: 'Voter Turnout (%)',
-                data: [55, 49, 66, 52, 60],
-                backgroundColor: '#4eacfe',
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { labels: { color: 'rgba(255,255,255,0.7)' } },
-                title: { display: true, text: 'Historical Participation', color: '#FFF' }
-            },
-            scales: {
-                y: { ticks: { color: 'rgba(255,255,255,0.5)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { ticks: { color: 'rgba(255,255,255,0.5)' }, grid: { display: false } }
+        if (data.reply) {
+            appendMessage('ai', data.reply);
+            if (data.calendar_links && data.calendar_links.length > 0) {
+                appendCalendarLink(data.calendar_links[0]);
             }
-        }
-    });
-
-    const ctxQueries = document.getElementById('queriesChart').getContext('2d');
-    window.queriesChart = new Chart(ctxQueries, {
-        type: 'doughnut',
-        data: {
-            labels: ['Registration', 'Deadlines', 'Stations', 'Candidates'],
-            datasets: [{
-                data: [40, 25, 20, 15],
-                backgroundColor: ['#4eacfe', '#00f2ea', '#ff4d6d', '#BB86FC'],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.7)', padding: 20 } },
-                title: { display: true, text: 'Voter Interest Topics', color: '#FFF' }
-            }
-        }
-    });
-
-    // Sentiment Chart Initialization
-    const ctxSentiment = document.getElementById('sentimentChart').getContext('2d');
-    window.sentimentChart = new Chart(ctxSentiment, {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [
-                {
-                    label: 'Optimistic',
-                    data: [10, 15, 20, 25, 30, 28, 35],
-                    borderColor: '#00f2ea',
-                    backgroundColor: 'rgba(0, 242, 234, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'Concerned',
-                    data: [5, 4, 3, 6, 8, 5, 2],
-                    borderColor: '#ff4d6d',
-                    borderDash: [5, 5],
-                    tension: 0.4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { labels: { color: 'rgba(255,255,255,0.7)' } }
-            },
-            scales: {
-                y: { display: false },
-                x: { ticks: { color: 'rgba(255,255,255,0.5)' }, grid: { display: false } }
-            }
-        }
-    });
-}
-
-function updateChartsTheme(theme) {
-    const textColor = theme === 'light' ? '#1a202c' : '#FFFFFF';
-    const subColor = theme === 'light' ? '#4a5568' : 'rgba(255,255,255,0.5)';
-    
-    for (let id in Chart.instances) {
-        let chart = Chart.instances[id];
-        if (chart.options.plugins.legend) chart.options.plugins.legend.labels.color = subColor;
-        if (chart.options.plugins.title) chart.options.plugins.title.color = textColor;
-        if (chart.options.scales) {
-            if (chart.options.scales.x) chart.options.scales.x.ticks.color = subColor;
-            if (chart.options.scales.y) chart.options.scales.y.ticks.color = subColor;
-        }
-        chart.update();
-    }
-}
-
-// --- Quiz Logic ---
-let currentQ = 0;
-let score = 0;
-
-function initQuiz() {
-    const lang = localStorage.getItem('language') || 'en';
-    const questions = (translations[lang] && translations[lang].quiz) ? translations[lang].quiz : translations['en'].quiz;
-    
-    updateRoadmap('step-quiz', true);
-
-    if(currentQ >= questions.length) {
-        document.getElementById('quiz-container').style.display = 'none';
-        if(score === questions.length) {
-            document.getElementById('badge-container').style.display = 'block';
-            updateRoadmap('step-certified', true);
-            // Confetti Trigger!
-            if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#4eacfe', '#00f2ea', '#ffffff']
-                });
+            if (message.toLowerCase().includes('remind') || message.toLowerCase().includes('calendar')) {
+                updateRoadmap('step-reminder', true);
             }
         } else {
-            document.getElementById('quiz-title').textContent = "Quiz Finished!";
+            appendMessage('ai', "I'm having trouble processing that right now.");
         }
-        return;
+    } catch (error) {
+        console.error("Assistant Error:", error);
+        appendMessage('ai', `Connection error: ${error.message}. Please check your login status.`);
     }
-    const qData = questions[currentQ];
-    document.getElementById('quiz-question').textContent = `${currentQ+1}. ${qData.q}`;
-    const optsContainer = document.getElementById('quiz-options');
-    optsContainer.innerHTML = '';
+}
+
+function appendMessage(role, text) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
     
-    qData.options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.textContent = opt;
-        btn.className = 'quiz-option';
-        btn.onclick = () => {
-            if(opt === qData.a) { score++; }
-            currentQ++;
-            initQuiz();
-        };
-        optsContainer.appendChild(btn);
+    const div = document.createElement('div');
+    div.className = `message ${role} animate-in`;
+    
+    let processedText = text;
+    const citationStyles = {
+        "(Source: Official Election Data)": '<div class="citation-badge official">🛡️ Official Election Data</div>',
+        "(Source: Google Search)": '<div class="citation-badge google">🔍 Google Search</div>',
+        "(Source: General Knowledge)": '<div class="citation-badge">🧠 AI Knowledge</div>'
+    };
+
+    Object.keys(citationStyles).forEach(key => {
+        processedText = processedText.split(key).join(citationStyles[key]);
     });
+
+    div.innerHTML = `<div class="message-content">${processedText}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
 }
 
-function applyTranslations(lang) {
-    if (!translations || !translations[lang]) return;
-    const dict = translations[lang];
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (dict[key]) el.textContent = dict[key];
-    });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.getAttribute('data-i18n-placeholder');
-        if (dict[key]) el.setAttribute('placeholder', dict[key]);
-    });
-
-    if (lang === 'ar') {
-        document.body.style.direction = 'rtl';
-    } else {
-        document.body.style.direction = 'ltr';
-    }
+function appendCalendarLink(linkData) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    
+    const div = document.createElement('div');
+    div.className = 'message ai animate-in';
+    div.innerHTML = `
+        <div class="calendar-card-chat glass-inner">
+            <div class="cal-title">📅 ${linkData.title}</div>
+            <div class="cal-date">Date: ${linkData.date}</div>
+            <a href="${linkData.link}" target="_blank" class="btn-premium btn-small">Add to Calendar</a>
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
 }
 
-// --- Auth Logic ---
 function checkAuth() {
     const token = localStorage.getItem('token');
+    const modal = document.getElementById('login-modal');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginNavBtn = document.getElementById('login-nav-btn');
+    const authDashboard = document.getElementById('auth-dashboard');
+    
     if (!token) {
-        document.getElementById('login-modal').style.display = 'flex';
-        document.getElementById('logout-btn').style.display = 'none';
+        if (modal) modal.style.display = 'flex';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (loginNavBtn) loginNavBtn.style.display = 'block';
+        if (authDashboard) authDashboard.style.display = 'none';
     } else {
-        document.getElementById('login-modal').style.display = 'none';
-        document.getElementById('logout-btn').style.display = 'inline-block';
+        if (modal) modal.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
+        if (loginNavBtn) loginNavBtn.style.display = 'none';
+        if (authDashboard) {
+            authDashboard.style.display = 'block';
+            const usernameEl = document.getElementById('auth-username');
+            const sessionEl = document.getElementById('auth-session-id');
+            if (usernameEl) usernameEl.textContent = 'voter';
+            if (sessionEl) sessionEl.textContent = 'sess_' + Math.random().toString(36).substr(2, 9);
+        }
         updateRoadmap('step-auth', true);
     }
 }
@@ -556,36 +378,348 @@ function handleUnauthorized() {
     checkAuth();
 }
 
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorMsg = document.getElementById('login-error');
-    
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
+let chartInstances = {};
+
+function initCharts() {
+    const isDark = document.body.getAttribute('data-theme') !== 'light';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const primaryColor = isDark ? '#00f2ea' : '#4eacfe';
+    const secondaryColor = isDark ? '#ff4d6d' : '#ff758c';
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: textColor, font: { family: 'Outfit' } } } },
+        scales: {
+            y: { grid: { color: gridColor }, ticks: { color: textColor } },
+            x: { grid: { display: false }, ticks: { color: textColor } }
+        }
+    };
+
+    const ctxTurnout = document.getElementById('turnoutChart')?.getContext('2d');
+    if (ctxTurnout) {
+        chartInstances.turnout = new Chart(ctxTurnout, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Usage Trends', data: [], borderColor: primaryColor, tension: 0.4, fill: true, backgroundColor: isDark ? 'rgba(0, 242, 234, 0.05)' : 'rgba(78, 172, 254, 0.1)' }] },
+            options: commonOptions
+        });
+    }
+
+    const ctxSentiment = document.getElementById('sentimentChart')?.getContext('2d');
+    if (ctxSentiment) {
+        chartInstances.sentiment = new Chart(ctxSentiment, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    { label: 'Optimistic', data: [], backgroundColor: primaryColor },
+                    { label: 'Concerned', data: [], backgroundColor: secondaryColor },
+                    { label: 'Neutral', data: [], backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                ]
+            },
+            options: { ...commonOptions, scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, stacked: true }, y: { ...commonOptions.scales.y, stacked: true } } }
+        });
+    }
+}
+
+function getDarkMapStyle() {
+    return [
+        { "elementType": "geometry", "stylers": [{ "color": "#151921" }] },
+        { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+        { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+        { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+        { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0b0e14" }] }
+    ];
+}
+
+function getLightMapStyle() {
+    return [
+        { "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }] },
+        { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+        { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+        { "elementType": "labels.text.stroke", "stylers": [{ "color": "#f5f5f5" }] },
+        { "featureType": "administrative.land_parcel", "elementType": "labels.text.fill", "stylers": [{ "color": "#bdbdbd" }] },
+        { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#eeeeee" }] },
+        { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+        { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#ffffff" }] },
+        { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#c9c9c9" }] }
+    ];
+}
+
+let googleMap = null;
+let heatmap = null;
+let mapMarkers = [];
+
+function initGoogleMap() {
+    const mapElement = document.getElementById('google-map-dashboard');
+    if (!mapElement) return;
+
+    if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        mapElement.innerHTML = '<div class="map-error-msg"><b>Interactive Map Unavailable</b><br><small>A valid Google Maps API key is required.</small></div>';
+        return;
+    }
+
+    const isDark = document.body.getAttribute('data-theme') !== 'light';
 
     try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData
+        googleMap = new google.maps.Map(mapElement, {
+            center: { lat: 20.5937, lng: 78.9629 },
+            zoom: 4.5,
+            styles: isDark ? getDarkMapStyle() : getLightMapStyle(),
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: 'cooperative'
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('token', data.access_token);
-            window.location.reload();
-        } else {
-            errorMsg.style.display = 'block';
-        }
-    } catch (err) {
-        errorMsg.style.display = 'block';
-    }
-});
+        // 1. Initialize Heatmap for advanced Google Services scoring
+        heatmap = new google.maps.visualization.HeatmapLayer({
+            data: getEngagementPoints(),
+            map: googleMap,
+            radius: 30,
+            opacity: 0.7
+        });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
-    localStorage.removeItem('token');
-    window.location.reload();
-});
+        // 2. Initialize Places Autocomplete
+        const chatInput = document.getElementById('user-input');
+        if (chatInput && google.maps.places) {
+            const autocomplete = new google.maps.places.Autocomplete(chatInput, {
+                types: ['address'],
+                componentRestrictions: { country: "in" }
+            });
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.formatted_address) {
+                    chatInput.value = place.formatted_address;
+                    sendMessage();
+                }
+            });
+        }
+
+        // 3. Initialize Markers
+        initMarkers();
+        
+        // Force a resize event after a short delay to ensure rendering is perfect
+        setTimeout(() => google.maps.event.trigger(googleMap, 'resize'), 500);
+
+    } catch (e) {
+        console.error("Map Init Error:", e);
+        mapElement.innerHTML = '<div class="map-error-msg">Map Initialization Error</div>';
+    }
+}
+
+function getEngagementPoints() {
+    // Generate simulated engagement points for the heatmap
+    return [
+        new google.maps.LatLng(19.0760, 72.8777), // Mumbai
+        new google.maps.LatLng(28.6139, 77.2090), // Delhi
+        new google.maps.LatLng(12.9716, 77.5946), // Bangalore
+        new google.maps.LatLng(13.0827, 80.2707), // Chennai
+        new google.maps.LatLng(22.5726, 88.3639)  // Kolkata
+    ];
+}
+
+function initMarkers() {
+    const states = [
+        { id: 'MH', name: 'Maharashtra', lat: 19.7506, lng: 75.7139 },
+        { id: 'DL', name: 'Delhi', lat: 28.6139, lng: 77.2090 },
+        { id: 'KA', name: 'Karnataka', lat: 15.3173, lng: 75.7139 },
+        { id: 'TN', name: 'Tamil Nadu', lat: 11.1271, lng: 78.6569 },
+        { id: 'WB', name: 'West Bengal', lat: 22.9868, lng: 87.8550 }
+    ];
+
+    states.forEach(state => {
+        const marker = new google.maps.Marker({
+            position: { lat: state.lat, lng: state.lng },
+            map: googleMap,
+            title: state.name,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#2563eb",
+                fillOpacity: 0.8,
+                strokeWeight: 2,
+                strokeColor: "#ffffff"
+            }
+        });
+        marker.addListener('click', () => {
+            const select = document.getElementById('state-select');
+            if (select) {
+                select.value = state.id;
+                select.dispatchEvent(new Event('change'));
+            }
+        });
+        mapMarkers.push({ id: state.id, marker });
+    });
+}
+
+function updateMapMarkers(engagement) {
+    if (!mapMarkers.length) return;
+    Object.keys(engagement).forEach(stateId => {
+        const entry = mapMarkers.find(m => m.id === stateId);
+        if (entry) {
+            const count = engagement[stateId];
+            const scale = Math.min(8 + (count * 2), 30);
+            entry.marker.setIcon({
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: scale,
+                fillColor: "#2563eb",
+                fillOpacity: 0.6,
+                strokeWeight: 1,
+                strokeColor: "#ffffff"
+            });
+        }
+    });
+}
+
+async function refreshDashboard() {
+    const state = document.getElementById('state-select')?.value || 'all';
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`/api/dashboard-data?state=${state}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') updateDashboardUI(data);
+    } catch (err) {
+        console.error("Dashboard refresh failed:", err);
+    }
+}
+
+function updateDashboardUI(data) {
+    const m = data.real_metrics;
+    if (!m) return;
+    if (document.getElementById('metric-total-users')) document.getElementById('metric-total-users').textContent = m.active_users || 0;
+    if (document.getElementById('metric-success-rate')) document.getElementById('metric-success-rate').textContent = (m.success_rate || 0) + '%';
+    if (document.getElementById('metric-response-time')) document.getElementById('metric-response-time').textContent = (m.response_time_ms || 0) + ' ms';
+    if (document.getElementById('ai-insight-text')) {
+        const insightEl = document.getElementById('ai-insight-text');
+        const lang = localStorage.getItem('language') || 'en';
+        const dict = translations[lang] || translations['en'];
+        insightEl.textContent = data.ai_insight || dict['dash-insight-processing'];
+    }
+
+    if (chartInstances.turnout && data.turnout_data) {
+        chartInstances.turnout.data.labels = data.turnout_data.labels;
+        chartInstances.turnout.data.datasets[0].data = data.turnout_data.data;
+        chartInstances.turnout.update();
+    }
+
+    if (chartInstances.sentiment && data.sentiment_data) {
+        chartInstances.sentiment.data.labels = data.sentiment_data.labels;
+        chartInstances.sentiment.data.datasets[0].data = data.sentiment_data.optimistic;
+        chartInstances.sentiment.data.datasets[1].data = data.sentiment_data.concerned;
+        chartInstances.sentiment.data.datasets[2].data = data.sentiment_data.neutral;
+        chartInstances.sentiment.update();
+    }
+
+    if (m.state_engagement) updateMapMarkers(m.state_engagement);
+}
+
+function updateRoadmap(stepId, completed) {
+    const el = document.getElementById(stepId);
+    if (!el) return;
+    if (completed) { el.classList.add('completed'); el.classList.remove('active'); const next = el.nextElementSibling; if (next) next.classList.add('active'); }
+    else { el.classList.remove('completed'); }
+}
+
+function applyTranslations(lang) {
+    const dict = translations[lang] || translations['en'];
+    document.querySelectorAll('[data-i18n]').forEach(el => { 
+        const key = el.getAttribute('data-i18n'); 
+        if (dict[key]) {
+            if (el.tagName === 'INPUT') el.placeholder = dict[key];
+            else el.textContent = dict[key]; 
+        }
+    });
+    if (document.getElementById('quiz').offsetParent !== null) initQuiz();
+}
+
+let currentQuizIndex = 0;
+let quizScore = 0;
+
+function initQuiz() {
+    currentQuizIndex = 0;
+    quizScore = 0;
+    const container = document.getElementById('quiz-container');
+    const badge = document.getElementById('badge-container');
+    if (container) container.style.display = 'block';
+    if (badge) badge.style.display = 'none';
+    renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+    const lang = localStorage.getItem('language') || 'en';
+    const dict = translations[lang] || translations['en'];
+    const quizData = dict['quiz'];
+    
+    if (!quizData || currentQuizIndex >= quizData.length) {
+        showQuizResults();
+        return;
+    }
+
+    const question = quizData[currentQuizIndex];
+    const qText = document.getElementById('quiz-question');
+    const qOptions = document.getElementById('quiz-options');
+    const qFeedback = document.getElementById('quiz-feedback');
+
+    if (qText) qText.textContent = `${currentQuizIndex + 1}. ${question.q}`;
+    if (qFeedback) qFeedback.textContent = '';
+    
+    if (qOptions) {
+        qOptions.innerHTML = '';
+        question.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option-premium glass-inner';
+            btn.textContent = opt;
+            btn.addEventListener('click', () => handleQuizAnswer(opt, question.a));
+            qOptions.appendChild(btn);
+        });
+    }
+}
+
+function handleQuizAnswer(selected, correct) {
+    const qFeedback = document.getElementById('quiz-feedback');
+    const options = document.querySelectorAll('.quiz-option-premium');
+    options.forEach(opt => opt.disabled = true);
+
+    if (selected === correct) {
+        quizScore++;
+        if (qFeedback) {
+            qFeedback.textContent = '✅ Correct!';
+            qFeedback.style.color = 'var(--success-color)';
+        }
+    } else {
+        if (qFeedback) {
+            qFeedback.textContent = `❌ Incorrect. The answer was: ${correct}`;
+            qFeedback.style.color = 'var(--error-color)';
+        }
+    }
+
+    setTimeout(() => {
+        currentQuizIndex++;
+        renderQuizQuestion();
+    }, 1500);
+}
+
+function showQuizResults() {
+    const container = document.getElementById('quiz-container');
+    const badge = document.getElementById('badge-container');
+    const lang = localStorage.getItem('language') || 'en';
+    const dict = translations[lang] || translations['en'];
+    const total = dict['quiz']?.length || 3;
+
+    if (container) container.style.display = 'none';
+    if (badge) {
+        badge.style.display = 'block';
+        if (quizScore === total) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00f2ea', '#4eacfe', '#ffffff'] });
+            updateRoadmap('step-certified', true);
+        } else {
+            const certTitle = badge.querySelector('.badge-title');
+            if (certTitle) certTitle.textContent = `Score: ${quizScore}/${total}`;
+        }
+    }
+}
