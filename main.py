@@ -69,11 +69,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8080",
         "http://127.0.0.1:8080",
-        "https://election-assistant-649488092534.us-central1.run.app"
+        "https://election-assistant-649488092534.us-central1.run.app",
+        "https://election-assistant-649488092534.europe-west1.run.app"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"], # Tightened
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Efficiency Middleware (GZip)
@@ -87,17 +88,24 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Updated CSP for Firebase Auth and Google Services
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://maps.googleapis.com https://www.googletagmanager.com https://www.gstatic.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://maps.googleapis.com https://www.googletagmanager.com https://www.gstatic.com https://apis.google.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-        "img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com https://www.google-analytics.com; "
-        "connect-src 'self' https://maps.googleapis.com https://www.google-analytics.com https://identitytoolkit.googleapis.com;"
+        "img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com https://www.google-analytics.com https://www.gstatic.com; "
+        "connect-src 'self' https://maps.googleapis.com https://www.google-analytics.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://*.googleapis.com;"
     )
+    
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
-    response.headers["Expect-CT"] = "max-age=86400, enforce" # Legacy compliance
+    response.headers["Expect-CT"] = "max-age=86400, enforce"
+    
+    # CRITICAL: Allow popups for Firebase Google Sign-In
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+    
     return response
 
 @app.exception_handler(Exception)
