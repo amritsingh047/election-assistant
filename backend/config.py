@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PORT: int = 8080
     
     # Google Cloud Config
-    GOOGLE_CLOUD_PROJECT: str = "649488092534"
+    GOOGLE_CLOUD_PROJECT: str = "election-assistant-app-123"
     GOOGLE_CLOUD_REGION: str = "us-central1"
     GOOGLE_API_KEY: Optional[str] = None # Will be resolved via CloudService in production
     
